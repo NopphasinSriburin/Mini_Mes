@@ -2,7 +2,7 @@
 
 > ระบบจำลองสายการผลิตในโรงงานอุตสาหกรรม สำหรับติดตามการผลิตแบบเรียลไทม์ ตรวจสอบย้อนกลับวัตถุดิบ (Traceability) และจัดการงานซ่อมบำรุง — พัฒนาเป็น Full-Stack Web Application
 
-![Stack](https://img.shields.io/badge/stack-React%20%2B%20Node%20%2B%20PostgreSQL-blue)
+
 ![TypeScript](https://img.shields.io/badge/TypeScript-frontend-3178C6)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
