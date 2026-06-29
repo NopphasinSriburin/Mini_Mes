@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16
+    container_name: mini-mes-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: mini_mes
+    ports:
+      - "5433:5432"        # เครื่องคุณเข้าผ่าน 5433, ในคอนเทนเนอร์คือ 5432
+    volumes:
+      - mini_mes_data:/var/lib/postgresql/data
+
+volumes:
+  mini_mes_data:
