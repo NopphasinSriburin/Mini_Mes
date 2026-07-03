@@ -5,7 +5,7 @@
 ![Stack](https://img.shields.io/badge/stack-React%20%2B%20Node%20%2B%20PostgreSQL-blue)
 ![Deploy](https://img.shields.io/badge/deployed-Vercel%20%2B%20Railway-black)
 
-**🔗 Live Demo:** `[https://mini-mes.vercel.app/]`
+**🔗 Live Demo:** `https://mini-mes.vercel.app/`
 
 ---
 
