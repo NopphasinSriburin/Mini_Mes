@@ -1,217 +1,205 @@
 # Mini MES — ระบบควบคุมการผลิตในโรงงาน (Manufacturing Execution System)
 
-> ระบบจำลองสายการผลิตในโรงงานอุตสาหกรรม สำหรับติดตามการผลิตแบบเรียลไทม์ ตรวจสอบย้อนกลับวัตถุดิบ (Traceability) และจัดการงานซ่อมบำรุง — พัฒนาเป็น Full-Stack Web Application
+> ระบบจำลองสายการผลิตในโรงงานอุตสาหกรรมแบบครบวงจร ตั้งแต่รับวัตถุดิบเข้าคลัง ตั้งสูตรการผลิต สร้างใบสั่งผลิต บันทึกการผลิตหน้างาน ตรวจสอบคุณภาพ ไปจนถึงตรวจสอบย้อนกลับ — พัฒนาเป็น Full-Stack Web Application พร้อม deploy ใช้งานจริงบน cloud
 
 ![Stack](https://img.shields.io/badge/stack-React%20%2B%20Node%20%2B%20PostgreSQL-blue)
-![TypeScript](https://img.shields.io/badge/TypeScript-frontend-3178C6)
-![License](https://img.shields.io/badge/license-MIT-green)
+![Deploy](https://img.shields.io/badge/deployed-Vercel%20%2B%20Railway-black)
+
+**🔗 Live Demo:** `[ใส่ URL Vercel ของคุณตรงนี้]`
+**🔗 Backend API:** `[ใส่ URL Railway ของคุณตรงนี้]`
 
 ---
-<img width="1912" height="947" alt="image" src="https://github.com/user-attachments/assets/0baf96cb-ec6e-4ad9-a257-68a3905975cb" />
-<img width="1907" height="938" alt="image" src="https://github.com/user-attachments/assets/3b5c4209-881d-46f7-9129-498a55996828" />
-<img width="1912" height="947" alt="image" src="https://github.com/user-attachments/assets/5651b5f4-a923-40b1-bc54-157a22b5d3f9" />
-
 
 ## 📌 โปรเจคนี้คืออะไร
 
-Mini MES เป็นระบบ **Manufacturing Execution System** ที่จำลองการทำงานของโรงงานจริง ออกแบบมาเพื่อแก้ปัญหาหลักของสายการผลิต คือ การติดตามงาน การตรวจสอบคุณภาพ และการตรวจสอบย้อนกลับเมื่อสินค้ามีปัญหา
+Mini MES คือระบบ **Manufacturing Execution System** ที่จำลองการทำงานของโรงงานจริงตั้งแต่ต้นน้ำถึงปลายน้ำ ออกแบบมาเพื่อแก้ปัญหาหลักของสายการผลิต ได้แก่ การจัดการวัตถุดิบ การติดตามงานผลิต การควบคุมคุณภาพ และการตรวจสอบย้อนกลับเมื่อสินค้ามีปัญหา
 
-ระบบนี้แทนที่การจดบันทึกด้วยกระดาษหน้าไลน์ผลิต ด้วยหน้าจอดิจิทัลที่พนักงานกดบันทึกได้ง่าย และทำให้ผู้จัดการเห็นสถานะการผลิตแบบเรียลไทม์
+ระบบนี้แทนที่การจดบันทึกด้วยกระดาษหน้าไลน์ผลิต ด้วยหน้าจอดิจิทัลที่พนักงานกดบันทึกได้ง่าย และให้ผู้จัดการเห็นสถานะการผลิต สต็อกวัตถุดิบ และปัญหาเครื่องจักรแบบเรียลไทม์
 
-### ปัญหาที่ระบบนี้แก้
+### ปัญหาในโรงงานที่ระบบนี้แก้
 
-| ปัญหาในโรงงาน | วิธีที่ระบบแก้ |
+| ปัญหา | วิธีที่ระบบแก้ |
 |---|---|
-| ไม่รู้ว่าสินค้าชิ้นนี้ใช้วัตถุดิบล็อตไหน | Traceability ตรวจสอบย้อนกลับได้ทุกชิ้น |
+| ไม่รู้ว่าสินค้าชิ้นนี้ใช้วัตถุดิบล็อตไหน เครื่องไหนผลิต | Traceability ตรวจสอบย้อนกลับได้ทุกชิ้น รวมเครื่องจักรที่ใช้ |
 | วัตถุดิบล็อตเสีย ไม่รู้ต้องเรียกคืนสินค้าชิ้นไหน | Backward trace หาชิ้นงานที่กระทบได้ทันที |
-| จดบันทึกการผลิตด้วยกระดาษ ตกหล่น ช้า | หน้าจอ Andon กดบันทึกดิจิทัลหน้างาน |
-| ไม่รู้สถานะเครื่องจักร / ยอดผลิตปัจจุบัน | Dashboard เรียลไทม์ |
-| เครื่องเสียไม่มีระบบติดตามการซ่อม | ระบบ Maintenance + บันทึก downtime |
+| จดบันทึกการผลิตด้วยกระดาษ ตกหล่น ช้า | หน้าจอ Andon กดบันทึกดิจิทัลหน้างาน ปุ่มใหญ่ใช้ง่าย |
+| ไม่รู้ว่าต้องใช้วัตถุดิบเท่าไหร่ก่อนเริ่มผลิต | ระบบ BOM คำนวณความต้องการวัตถุดิบอัตโนมัติจากสูตร |
+| เครื่องเดียวถูกจองผลิต 2 งานพร้อมกันโดยไม่รู้ตัว | เช็คเครื่องว่างอัตโนมัติก่อนอนุญาตให้สร้างใบสั่งผลิต |
+| ตรวจพบของเสียหลังบันทึกไปแล้วว่าเป็นของดี | ระบบ QC ตีกลับสถานะ พร้อมเปิดใบสั่งผลิตให้ผลิตชดเชยอัตโนมัติ |
+| ไม่รู้ประวัติว่าวัตถุดิบแต่ละล็อตถูกใช้ไปที่ไหนบ้าง | Material Ledger แสดงประวัติรับเข้า-ใช้ไปแบบบัญชีเดินสะพัด |
+| ไม่มีระบบติดตามการซ่อมบำรุงเครื่องจักร | ระบบแจ้งซ่อม-ปิดงาน พร้อมบันทึก downtime |
 
 ---
 
 ## 🛠️ Tech Stack
 
-**Frontend**
-- React 19 + TypeScript
-- Vite (build tool)
-- Tailwind CSS v4
-
-**Backend**
-- Node.js + Express
-- JWT Authentication + Role-based Access Control
-- RESTful API
-
-**Database**
-- PostgreSQL 16
-- ออกแบบ schema รองรับ Traceability เต็มรูปแบบ
-
-**DevOps**
-- Docker Compose (PostgreSQL)
+**Frontend:** React 19 + TypeScript, Vite, Tailwind CSS v4, Recharts (กราฟ)
+**Backend:** Node.js + Express, JWT Authentication, Role-based Access Control
+**Database:** PostgreSQL 16 (13+ ตาราง ออกแบบรองรับ Traceability เต็มรูปแบบ)
+**Deployment:** Vercel (frontend) + Railway (backend + PostgreSQL)
 
 ---
 
-## 🎯 ฟีเจอร์หลัก
+## 🎯 ฟีเจอร์ทั้งหมด (จัดกลุ่มตามเมนู)
 
-### 1. Dashboard เรียลไทม์
-แสดง KPI สำคัญ — จำนวนใบสั่งผลิตที่กำลังดำเนินการ, Quality Yield (% ของดี), สถานะเครื่องจักร, งานซ่อมค้าง
+### 📊 แดชบอร์ด
+KPI ภาพรวม (WO ที่กำลังผลิต, Quality Yield, สถานะเครื่องจักร, งานซ่อมค้าง) พร้อม**เตือนสต็อกวัตถุดิบใกล้หมด**ล่วงหน้า, แสดง**เครื่องจักรที่มีปัญหา**พร้อมรายละเอียด, รายการ WO กำลังผลิตพร้อม progress bar, และ**กราฟแนวโน้ม Quality Yield** ของ 10 WO ล่าสุดที่ปิดงาน
 
-### 2. การผลิต (Work Orders)
-จัดการใบสั่งผลิต ติดตามความคืบหน้าเทียบเป้าหมาย แยกยอดของดี/ของเสีย
+### 🏭 การผลิต
+- **ใบสั่งผลิต** — ดูรายการ WO ทั้งหมด กดเริ่มผลิต หรือลบใบที่สร้างผิด (เฉพาะที่ยังไม่มีการผลิตจริง)
+- **สร้าง WO ใหม่** — เลือกสินค้า ระบบคำนวณวัตถุดิบที่ต้องใช้จากสูตร BOM อัตโนมัติ, **เช็คเครื่องจักรว่างอัตโนมัติ**และมอบหมายให้, เลือกล็อตวัตถุดิบที่จะใช้
+- **บันทึกผลิต (Andon)** — ปุ่มใหญ่กดของดี/ของเสีย เป้าหมายนับเฉพาะของดี (ของเสียกดได้ไม่จำกัด ไม่ทำให้หยุด) ตัดสต็อกวัตถุดิบอัตโนมัติตามสูตร เติมล็อตวัตถุดิบเพิ่มได้ระหว่างผลิตถ้าของเดิมหมด มีปุ่มหยุดผลิตเมื่อครบเป้า
+- **ประวัติการผลิต** — WO ที่ปิดงานแล้วทั้งหมด พร้อมสรุป Yield
 
-### 3. บันทึกการผลิต (Andon Board)
-หน้าจอสำหรับพนักงานหน้าไลน์ — ปุ่มขนาดใหญ่กดบันทึกของดี/ของเสียได้ทันที สร้าง serial อัตโนมัติ เหมาะกับการใช้งานบน tablet หน้างาน
+### 📦 วัตถุดิบ
+- **ตั้งค่าสูตร (BOM)** — กำหนดว่าสินค้าแต่ละตัวผลิต 1 ชิ้นต้องใช้วัตถุดิบอะไรบ้าง พร้อมระบบเตือนถ้าตัวเลขดูผิดปกติ
+- **รับวัตถุดิบเข้าคลัง** — บันทึกล็อตใหม่ที่รับเข้า
+- **ประวัติวัตถุดิบ** — บัญชีเดินสะพัด แสดงทุกความเคลื่อนไหว (รับเข้า/ใช้ไป) ของวัตถุดิบแต่ละตัว
 
-### 4. ตรวจสอบย้อนกลับ (Traceability) ⭐ ฟีเจอร์เด่น
-- **Forward trace** — เลือกชิ้นงาน 1 ชิ้น เห็นว่าผลิตเมื่อไหร่ เครื่องไหน ใครผลิต ใช้วัตถุดิบล็อตใดบ้าง
-- **Backward trace (Recall)** — เลือกล็อตวัตถุดิบที่มีปัญหา เห็นทันทีว่ามีสินค้าชิ้นไหนได้รับผลกระทบและต้องเรียกคืน
+### ✅ คุณภาพ
+- **QC ตรวจสอบภายหลัง** — ค้นชิ้นงานด้วย serial ตีกลับเป็นของเสียถ้าตรวจพบปัญหาทีหลัง เปิด WO กลับมาผลิตชดเชยอัตโนมัติถ้าจำเป็น
+- **ตรวจสอบย้อนกลับ (Traceability)** — ⭐ จุดขายหลัก ค้นได้ 2 ทาง: จากชิ้นงาน→หาวัตถุดิบและเครื่องจักรที่ใช้ หรือจากล็อตวัตถุดิบ→หาสินค้าที่กระทบ (ใช้ตอน recall)
 
-### 5. ระบบซ่อมบำรุง (Maintenance)
-แจ้งซ่อมเครื่องจักร ติดตามสถานะ บันทึก downtime สำหรับนำไปคำนวณ OEE
+### 🔧 ซ่อมบำรุง
+แจ้งซ่อมใหม่ (เครื่องจักร + ประเภท + ปัญหา) และปิดงานซ่อม (บันทึกวิธีแก้ + downtime) ระบบตั้งสถานะเครื่องจักรให้อัตโนมัติ (DOWN ↔ IDLE)
 
 ---
 
-## 🗂️ โครงสร้างฐานข้อมูล
+## 🔄 Flow การทำงานเต็มระบบ
 
-ระบบใช้ตารางหลัก 13 ตาราง ออกแบบให้รองรับการตรวจสอบย้อนกลับ หัวใจสำคัญคือตาราง `unit_material_usage` ที่เชื่อมชิ้นงานแต่ละชิ้นกับล็อตวัตถุดิบที่ใช้ ทำให้ตรวจสอบได้ทั้งสองทิศทาง
+```
+1. รับวัตถุดิบเข้าคลัง (สร้างล็อตพร้อมสต็อก)
+2. ตั้งสูตร BOM ให้สินค้า (ทำครั้งเดียวต่อสินค้า)
+3. สร้าง WO → เลือกสินค้า+จำนวน → ระบบคำนวณวัตถุดิบที่ต้องใช้
+              → เช็คเครื่องว่าง มอบหมายอัตโนมัติ → เลือกล็อตวัตถุดิบ
+4. กด "เริ่มผลิต" → WO เปลี่ยนเป็น IN_PROGRESS → โผล่ในหน้า Andon
+5. Operator กดของดี/ของเสียที่ Andon → ตัดสต็อกอัตโนมัติตามสูตร
+   (ถ้าวัตถุดิบหมดกลางทาง → เติมล็อตใหม่ได้ทันทีในหน้าเดียวกัน)
+6. ของดีครบเป้า → กด "หยุดการผลิต" → WO ปิดงาน (COMPLETED) → เข้าประวัติ
+7. ถ้า QC ตรวจพบของเสียทีหลัง → ตีกลับที่หน้า QC
+   → WO เปิดกลับมาอัตโนมัติถ้าเคยปิดไปแล้ว → ผลิตชดเชย → กลับไปข้อ 6
+8. ตรวจสอบย้อนกลับได้ทุกจุดผ่านหน้า Traceability
+```
+
+---
+
+## 💡 จุดเด่นเชิงเทคนิค (สำหรับอธิบายตอนสัมภาษณ์)
+
+**Database Transaction** — ตอนบันทึกชิ้นงาน 1 ชิ้น ระบบทำ 3 อย่างพร้อมกันใน transaction เดียว: สร้างชิ้นงาน, ตัดสต็อกวัตถุดิบตามสูตร BOM, อัปเดตยอดดี/เสีย — ถ้าขั้นตอนใดล้มเหลวจะ rollback ทั้งหมด ป้องกันข้อมูลไม่สอดคล้องกัน
+
+**BOM-Driven Auto Deduction** — แยกแนวคิด "สิทธิ์ใช้ล็อต" (`work_order_materials` — engineer เลือกไว้ล่วงหน้า) ออกจาก "ประวัติการใช้จริง" (`unit_material_usage` — บันทึกอัตโนมัติตอนผลิต) ทำให้ operator หน้างานไม่ต้องเลือกวัตถุดิบเองเลย กดปุ่มอย่างเดียว ระบบจัดการเบื้องหลังทั้งหมด
+
+**Machine Availability Check** — ก่อนมอบหมายเครื่องจักรให้ WO ใหม่ ระบบเช็คว่าเครื่องนั้นไม่ได้เสีย/ซ่อมบำรุงอยู่ และไม่ได้ถูกจองโดย WO อื่นที่กำลัง IN_PROGRESS ป้องกันเครื่องเดียวรับ 2 งานพร้อมกัน
+
+**Two-way Traceability** — ตารางกลาง `unit_material_usage` เชื่อมชิ้นงานกับล็อตวัตถุดิบแบบ many-to-many ทำให้ตรวจสอบย้อนกลับได้ทั้งสองทิศทาง ตรงกับความต้องการจริงของโรงงานเมื่อต้องเรียกคืนสินค้า (recall)
+
+**QC Reopen Logic** — เมื่อตีกลับชิ้นงานจาก PASS เป็น FAIL หลัง WO ปิดงานไปแล้ว ระบบตรวจสอบสถานะและเปิด WO กลับเป็น IN_PROGRESS อัตโนมัติเพื่อให้ผลิตชดเชยได้ โดยไม่กระทบประวัติที่บันทึกไปแล้ว
+
+**Role-based Access Control** — แยกสิทธิ์ตามบทบาท เช่น เฉพาะ Engineer/Admin เท่านั้นที่สร้าง WO, แก้สูตร BOM, หรือลบข้อมูลได้
+
+**Type-safe Frontend** — TypeScript กำหนด type ของ API response ทั้งหมด แยก `types.ts`/`api.ts` ออกจาก component
+
+---
+
+## 🗂️ โครงสร้างฐานข้อมูล (13 ตารางหลัก)
 
 ```
 material_lots ──┐
                 ├──< unit_material_usage >──┐
 production_units ┘                          │
        │                                    │
-       ├──> work_orders ──> products        │
-       ├──> machines                        │
-       └──> users (operator)                │
+       ├──> work_orders ──> products ──> bom_items (สูตร)
+       │         │
+       │         └──> work_order_materials (ล็อตที่ผูกไว้)
+       ├──> machines ◄── (เช็คว่าง)
+       └──> users (operator)
 
-maintenance_orders ──> machines  (เก็บ downtime สำหรับ OEE)
+maintenance_orders ──> machines (downtime)
 ```
 
-ดูรายละเอียดเต็มใน [`db/schema.sql`](db/schema.sql)
+ดูรายละเอียดเต็มใน `db/schema.sql`
 
 ---
 
-## 🚀 วิธีติดตั้งและรัน
+## 🚀 วิธีติดตั้งและรัน (Local Development)
 
 ### สิ่งที่ต้องมี
-- Node.js 18+
-- Docker (สำหรับ PostgreSQL) หรือ PostgreSQL ที่ติดตั้งในเครื่อง
-- DBeaver หรือเครื่องมือจัดการ database (ไม่บังคับ)
+- Node.js 18+, PostgreSQL (หรือ Docker), DBeaver
 
 ### 1. Database
-
 ```bash
-# รัน PostgreSQL ผ่าน Docker
-docker compose up -d
-
-# โหลด schema และข้อมูลตัวอย่าง (ผ่าน DBeaver หรือ psql)
-# เปิดไฟล์ db/schema.sql แล้ว execute
-# ตามด้วย db/seed.sql
+# รัน db/schema.sql แล้วตามด้วย db/seed.sql ผ่าน DBeaver
 ```
 
-> ⚠️ หากใช้ Windows อย่ารัน seed.sql ผ่าน cmd/PowerShell โดยตรง เพราะภาษาไทยอาจเพี้ยน — แนะนำให้ execute ผ่าน DBeaver ที่อ่าน UTF-8 ได้ถูกต้อง
-
 ### 2. Backend
-
 ```bash
 cd my-backend
 npm install
-cp .env.example .env        # แก้ DATABASE_URL ให้ตรงกับ database ของคุณ
-npm run dev                 # รันที่ http://localhost:8081
+cp .env.example .env   # ตั้ง DATABASE_URL, JWT_SECRET
+npm run dev             # http://localhost:8081
 ```
 
 ### 3. Frontend
-
 ```bash
 cd React/my-client
 npm install
-npm run dev                 # รันที่ http://localhost:5173
+npm run dev              # http://localhost:5173
 ```
 
-เปิดเบราว์เซอร์ → เข้าสู่ระบบด้วย `engineer` / `password123`
-
-### บัญชีทดสอบ (ทุกบัญชีรหัส `password123`)
-
-| Username | Role | สิทธิ์ |
-|---|---|---|
-| admin | ADMIN | ทั้งหมด |
-| engineer | ENGINEER | สร้างใบสั่งผลิต + ทุกอย่าง |
-| somchai | OPERATOR | บันทึกการผลิต |
-| wichai | TECHNICIAN | งานซ่อมบำรุง |
+เข้าสู่ระบบด้วย `engineer` / `password123`
 
 ---
 
-## 📡 API Endpoints
+## ☁️ Deployment (Production)
+
+ระบบ deploy จริงบน cloud โดยแยก 3 ส่วน:
+
+| ส่วน | Platform | หมายเหตุ |
+|---|---|---|
+| Frontend | **Vercel** | Root directory: `React/my-client`, env: `VITE_API_URL` |
+| Backend | **Railway** | Root directory: `my-backend`, env: `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRES_IN`, `FRONTEND_URL` |
+| Database | **Railway PostgreSQL** | เชื่อมผ่าน TCP Proxy (public) สำหรับต่อจากภายนอก |
+
+**จุดสำคัญที่ต้องตั้งค่าให้ถูกตอน deploy:**
+- Backend ต้องเปิด **SSL** เวลาต่อ PostgreSQL บน cloud (`ssl: { rejectUnauthorized: false }`) เพราะ localhost dev ไม่ต้องการ SSL แต่ production ต้องการ
+- CORS ต้องจำกัดเฉพาะ domain ของ frontend จริง ผ่าน `FRONTEND_URL`
+- **Git บน Windows ไม่สนตัวพิมพ์ใหญ่-เล็กของชื่อไฟล์ แต่ Linux (ที่ Vercel/Railway ใช้) สนเป๊ะ** — ต้องตรวจสอบให้ชื่อไฟล์และ `import` ตรงกันแบบตัวต่อตัวเสมอ ไม่งั้น build จะผ่านในเครื่อง Windows แต่พังตอน deploy จริง (เจอปัญหานี้ระหว่างพัฒนาจริง แก้ด้วย `git rm --cached` + `git add` ใหม่ให้ตรงตัวพิมพ์)
+- Push ขึ้น `main` branch → Railway และ Vercel deploy ให้อัตโนมัติทั้งคู่ ไม่ต้องกดอะไรเพิ่ม
+
+---
+
+## 📡 API Endpoints หลัก
 
 | Method | Endpoint | คำอธิบาย |
 |---|---|---|
 | POST | `/api/auth/login` | เข้าสู่ระบบ รับ JWT token |
-| GET | `/api/dashboard/summary` | ข้อมูลสรุปสำหรับ dashboard |
-| GET | `/api/work-orders` | รายการใบสั่งผลิต |
-| POST | `/api/work-orders/:id/units` | บันทึกผลิต 1 ชิ้น (ใช้ transaction) |
-| GET | `/api/trace/unit/:serial` | Forward trace — ตามชิ้นงาน |
-| GET | `/api/trace/lot/:lotNo` | Backward trace — ตามล็อตวัตถุดิบ |
-| GET | `/api/maintenance` | รายการงานซ่อมบำรุง |
+| GET | `/api/dashboard/summary` | KPI + เตือนสต็อกต่ำ + เครื่องเสีย |
+| GET/POST | `/api/work-orders` | รายการ / สร้างใบสั่งผลิต (พร้อมผูกเครื่อง+ล็อต) |
+| GET | `/api/work-orders/machines/available` | เครื่องจักรที่ว่างตอนนี้ |
+| POST | `/api/work-orders/:id/units` | บันทึกผลิต 1 ชิ้น (auto-deduct BOM) |
+| PATCH | `/api/work-orders/:id/units/:unitId/reject` | QC ตีกลับเป็นของเสีย |
+| GET | `/api/trace/unit/:serial` / `/api/trace/lot/:lotNo` | Traceability สองทิศทาง |
+| GET/PUT | `/api/products/:id/bom` | ดู/ตั้งสูตรวัตถุดิบ |
+| POST | `/api/materials/lots` | รับวัตถุดิบเข้าคลัง |
+| GET | `/api/materials/:id/ledger` | ประวัติความเคลื่อนไหววัตถุดิบ |
+| GET/POST/PATCH | `/api/maintenance` | ระบบซ่อมบำรุงเต็มรูปแบบ |
 
-ทุก endpoint (ยกเว้น login) ต้องแนบ JWT ใน header: `Authorization: Bearer <token>`
-
----
-
-## 💡 จุดเด่นเชิงเทคนิค
-
-**Database Transaction** — ตอนบันทึกชิ้นงาน 1 ชิ้น ระบบจะทำ 3 อย่างพร้อมกันใน transaction เดียว: สร้างชิ้นงาน, ตัดสต็อกวัตถุดิบจากล็อต, อัปเดตยอดดี/เสียในใบสั่งผลิต — ถ้าขั้นตอนใดล้มเหลวจะ rollback ทั้งหมด ป้องกันข้อมูลไม่สอดคล้องกัน
-
-**Two-way Traceability** — ออกแบบความสัมพันธ์ many-to-many ระหว่างชิ้นงานกับล็อตวัตถุดิบ ทำให้ตรวจสอบย้อนกลับได้ทั้งสองทิศทาง ซึ่งเป็นความต้องการจริงของโรงงานเมื่อต้องเรียกคืนสินค้า (recall)
-
-**Role-based Access Control** — แยกสิทธิ์การเข้าถึงตามบทบาท เช่น เฉพาะ Engineer/Admin เท่านั้นที่สร้างใบสั่งผลิตได้
-
-**Type-safe Frontend** — ใช้ TypeScript กำหนด type ของ API response ทั้งหมด แยก `types.ts` และ `api.ts` ออกจาก component เพื่อให้บำรุงรักษาง่ายและขยายต่อได้
-
-**OEE-ready** — เก็บข้อมูล downtime ในระบบซ่อม และ yield ในใบสั่งผลิต พร้อมต่อยอดคำนวณ Overall Equipment Effectiveness
+ทุก endpoint (ยกเว้น login) ต้องแนบ JWT: `Authorization: Bearer <token>`
 
 ---
 
 ## 🔮 แผนพัฒนาต่อ
 
-- [ ] WebSocket สำหรับอัปเดต dashboard แบบ real-time push
-- [ ] เชื่อมต่อข้อมูลจากเครื่องจักรจริงผ่าน MQTT (ตาราง `machine_readings` เตรียมไว้แล้ว)
-- [ ] คำนวณ OEE เต็มรูปแบบ (Availability × Performance × Quality)
+- [ ] OEE เต็มรูปแบบ (Availability × Performance × Quality)
+- [ ] WebSocket สำหรับ dashboard แบบ real-time push
+- [ ] เชื่อมต่อข้อมูลเครื่องจักรจริงผ่าน MQTT (ตาราง `machine_readings` เตรียมไว้แล้ว)
 - [ ] รายงาน PDF สรุปการผลิตรายวัน
-- [ ] Docker Compose รวมทั้ง stack (frontend + backend + db)
-
----
-
-## 📂 โครงสร้างโปรเจค
-
-```
-mini-mes/
-├── db/
-│   ├── schema.sql           # โครงสร้างฐานข้อมูล
-│   └── seed.sql             # ข้อมูลตัวอย่าง
-├── my-backend/              # Node + Express API
-│   ├── Server.js            # entry point
-│   └── src/
-│       ├── db/pool.js       # connection pool + transaction
-│       ├── middleware.js    # JWT auth + role check
-│       └── routes/          # auth, work-orders, trace, maintenance, dashboard
-└── React/my-client/         # React + TypeScript
-    └── src/
-        ├── types.ts         # type definitions
-        ├── api.ts           # API client (จัดการ JWT)
-        ├── App.tsx
-        └── components/      # Login, Dashboard, Production, Andon, Traceability, Maintenance
-```
 
 ---
 
 ## 👤 ผู้พัฒนา
 
-พัฒนาเป็น portfolio project เพื่อแสดงความสามารถด้าน Full-Stack Development สำหรับงานสาย Smart Factory / Manufacturing Systems
-
-โปรเจคนี้แสดงทักษะ: การออกแบบฐานข้อมูลเชิงสัมพันธ์, การเขียน REST API ที่มี authentication, การจัดการ transaction, การพัฒนา frontend ด้วย TypeScript และการเข้าใจ domain ของการผลิตในโรงงาน
-
----
+พัฒนาเป็น portfolio project เพื่อแสดงความสามารถด้าน Full-Stack Development สำหรับงานสาย Smart Factory / Manufacturing Systems — ครอบคลุมตั้งแต่การออกแบบฐานข้อมูลเชิงสัมพันธ์ที่ซับซ้อน, REST API พร้อม authentication/authorization, database transaction, frontend TypeScript, ไปจนถึงการ deploy ระบบขึ้นใช้งานจริงบน cloud infrastructure
 
 ## 📄 License
-
 MIT
