@@ -8,10 +8,11 @@ import type {
   MaintenanceOrder, DashboardSummary, RecordUnitRequest, ProductionUnit,
   Product, Material, MaterialLot, BomItem, BomItemInput,
   CreateWorkOrderRequest, WorkOrderDetail, UnitLookup, ReservedMaterial, CreateLotRequest,
-  MaterialLedger, Machine, CreateMaintenanceRequest, CloseMaintenanceRequest,
+  MaterialLedger, Machine, CreateMaintenanceRequest, CloseMaintenanceRequest, AvailableMachine,
 } from "./types";
 
-const BASE_URL = "http://localhost:8081/api";
+// ตอน dev ใช้ localhost, ตอน deploy ใช้ VITE_API_URL ที่ตั้งค่าไว้บน Vercel
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8081/api";
 const TOKEN_KEY = "mes_token";
 
 // ---------- token helpers ----------
@@ -110,6 +111,8 @@ export const api = {
     request<{ removed: boolean }>(`/work-orders/${woId}/materials/${lotId}`, { method: "DELETE" }),
 
   // ---------- work order creation & lifecycle ----------
+  getAvailableMachines: () => request<AvailableMachine[]>("/work-orders/machines/available"),
+
   createWorkOrder: (body: CreateWorkOrderRequest) =>
     request<WorkOrder>("/work-orders", { method: "POST", body: JSON.stringify(body) }),
 
@@ -120,6 +123,10 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify({ status }),
     }),
+
+  // ลบ WO ที่ยังไม่มีการผลิตจริง (ป้องกันสร้างผิด)
+  deleteWorkOrder: (id: string) =>
+    request<{ deleted: boolean }>(`/work-orders/${id}`, { method: "DELETE" }),
 
   // ผูกล็อตวัตถุดิบเพิ่มเข้า WO ที่มีอยู่แล้ว (ใช้เมื่อล็อตเดิมหมด)
   addWorkOrderMaterial: (woId: string, lotId: string, qtyReserved?: number) =>

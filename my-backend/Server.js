@@ -13,7 +13,8 @@ import materialRoutes from "./src/routes/materials.js";
 dotenv.config();
 
 const app = express();
-app.use(cors());
+// ตอน dev อนุญาตทุก origin, ตอน deploy จำกัดเฉพาะ domain frontend จริง (ตั้งผ่าน FRONTEND_URL)
+app.use(cors({ origin: process.env.FRONTEND_URL || true }));
 app.use(express.json());
 
 app.get("/api/health", (_req, res) => res.json({ ok: true }));

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
-import type { Product, BomItem, MaterialLot } from "../types";
+import type { Product, BomItem, MaterialLot, AvailableMachine } from "../types";
 
 interface MaterialSelection {
   materialId: string;
@@ -17,6 +17,8 @@ export default function CreateWorkOrder({ onCreated }: { onCreated?: () => void 
   const [productId, setProductId] = useState("");
   const [woNo, setWoNo] = useState("");
   const [qtyTarget, setQtyTarget] = useState("100");
+  const [machines, setMachines] = useState<AvailableMachine[] | null>(null);
+  const [machineId, setMachineId] = useState("");
   const [selections, setSelections] = useState<MaterialSelection[]>([]);
   const [loadingBom, setLoadingBom] = useState(false);
   const [error, setError] = useState("");
@@ -27,6 +29,12 @@ export default function CreateWorkOrder({ onCreated }: { onCreated?: () => void 
     api.getProducts().then((list) => {
       setProducts(list);
       if (list[0]) setProductId(list[0].id);
+    }).catch((e) => setError(e.message));
+
+    // เช็คเครื่องว่าง — เลือกเครื่องแรกที่ว่างให้อัตโนมัติ
+    api.getAvailableMachines().then((list) => {
+      setMachines(list);
+      if (list[0]) setMachineId(list[0].id);
     }).catch((e) => setError(e.message));
   }, []);
 
@@ -104,6 +112,7 @@ export default function CreateWorkOrder({ onCreated }: { onCreated?: () => void 
         woNo,
         productId,
         qtyTarget: Number(qtyTarget),
+        machineId: machineId || undefined,
         materials: selections.map((s) => ({ lotId: s.selectedLotId, qtyReserved: s.qtyNeeded })),
       });
       setStatus(`สร้างใบสั่งผลิต ${woNo} เรียบร้อย — ไปที่หน้า "การผลิต" เพื่อกด "เริ่มผลิต"`);
@@ -141,6 +150,24 @@ export default function CreateWorkOrder({ onCreated }: { onCreated?: () => void 
             <input type="number" value={qtyTarget} onChange={(e) => setQtyTarget(e.target.value)}
               className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm font-mono text-slate-100 outline-none focus:border-sky-500" />
           </div>
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-xs text-slate-400 mb-1">เครื่องจักร (เลือกจากเครื่องที่ว่างเท่านั้น)</label>
+          {machines === null ? (
+            <div className="text-slate-500 text-xs py-2">กำลังเช็คเครื่องว่าง...</div>
+          ) : machines.length === 0 ? (
+            <div className="text-red-400 text-sm bg-red-400/10 border border-red-400/30 rounded-lg px-3 py-2.5">
+              ตอนนี้ไม่มีเครื่องจักรว่างเลย — เครื่องทั้งหมดกำลังผลิตอยู่ หรือเสีย/ซ่อมบำรุงอยู่
+            </div>
+          ) : (
+            <select value={machineId} onChange={(e) => setMachineId(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 outline-none focus:border-sky-500">
+              {machines.map((m) => (
+                <option key={m.id} value={m.id}>{m.machine_code} · {m.name} ({m.line_name})</option>
+              ))}
+            </select>
+          )}
         </div>
 
         {loadingBom && <div className="text-slate-500 text-sm py-4 text-center">กำลังคำนวณวัตถุดิบที่ต้องใช้...</div>}

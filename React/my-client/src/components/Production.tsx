@@ -25,6 +25,20 @@ export default function Production() {
     }
   };
 
+  const deleteWo = async (id: string, woNo: string) => {
+    if (!window.confirm(`ลบใบสั่งผลิต ${woNo}? การกระทำนี้ย้อนกลับไม่ได้`)) return;
+    setBusyId(id);
+    setError("");
+    try {
+      await api.deleteWorkOrder(id);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "ลบไม่สำเร็จ");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   if (error) return <div className="text-red-400 text-sm bg-red-400/10 border border-red-400/30 rounded-lg p-4">{error}</div>;
   if (!orders) return <div className="text-slate-500 text-sm py-12 text-center">กำลังโหลด...</div>;
 
@@ -56,12 +70,21 @@ export default function Production() {
                   <Td right mono className={w.qty_defect ? "text-red-400" : "text-slate-500"}>{w.qty_defect}</Td>
                   <Td><Badge value={w.status} /></Td>
                   <Td>
-                    {w.status === "PLANNED" && (
-                      <button onClick={() => startProduction(w.id)} disabled={busyId === w.id}
-                        className="text-xs bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-slate-950 font-semibold px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap">
-                        {busyId === w.id ? "..." : "▶ เริ่มผลิต"}
-                      </button>
-                    )}
+                    <div className="flex gap-1.5">
+                      {w.status === "PLANNED" && (
+                        <button onClick={() => startProduction(w.id)} disabled={busyId === w.id}
+                          className="text-xs bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-slate-950 font-semibold px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap">
+                          {busyId === w.id ? "..." : "▶ เริ่มผลิต"}
+                        </button>
+                      )}
+                      {w.qty_good === 0 && w.qty_defect === 0 && (
+                        <button onClick={() => deleteWo(w.id, w.wo_no)} disabled={busyId === w.id}
+                          title="ลบใบสั่งผลิตนี้ (ยังไม่มีการผลิตจริง)"
+                          className="text-xs text-slate-500 hover:text-red-400 disabled:opacity-50 border border-slate-700 hover:border-red-400/40 px-2.5 py-1.5 rounded-lg transition-colors">
+                          ✕ ลบ
+                        </button>
+                      )}
+                    </div>
                   </Td>
                 </tr>
               );

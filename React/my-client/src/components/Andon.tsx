@@ -104,7 +104,12 @@ export default function Andon() {
               <span className="font-mono text-lg font-bold text-slate-100">{selected.wo_no}</span>
               <Badge value={selected.status} />
             </div>
-            <div className="text-sm text-slate-400 mb-4">{selected.product_name}</div>
+            <div className="text-sm text-slate-400 mb-4">
+              {selected.product_name}
+              {selected.machine_code && (
+                <span className="text-slate-600"> · เครื่อง {selected.machine_code}</span>
+              )}
+            </div>
 
             <div className="grid grid-cols-3 gap-3 mb-2">
               <Stat label="เป้าหมาย" value={selected.qty_target} />

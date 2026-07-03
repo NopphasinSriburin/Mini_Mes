@@ -42,6 +42,17 @@ export interface WorkOrder {
   product_id: string;
   product_code: string;
   product_name: string;
+  machine_id: string | null;
+  machine_code: string | null;
+  machine_name: string | null;
+}
+
+export interface AvailableMachine {
+  id: string;
+  machine_code: string;
+  name: string;
+  line_name: string | null;
+  status: MachineStatus;
 }
 
 // ---------- products & materials (BOM) ----------
@@ -114,6 +125,7 @@ export interface CreateWorkOrderRequest {
   woNo: string;
   productId: string;
   qtyTarget: number;
+  machineId?: string;
   materials: { lotId: string; qtyReserved?: number }[];
 }
 

@@ -12,16 +12,34 @@ router.get("/", async (req, res) => {
   const params = [];
   let sql = `
     SELECT wo.id, wo.wo_no, wo.qty_target, wo.qty_good, wo.qty_defect,
-           wo.status, wo.actual_start, wo.actual_end, wo.product_id,
-           p.product_code, p.name AS product_name
+           wo.status, wo.actual_start, wo.actual_end, wo.product_id, wo.machine_id,
+           p.product_code, p.name AS product_name,
+           m.machine_code, m.name AS machine_name
     FROM work_orders wo
-    JOIN products p ON p.id = wo.product_id`;
+    JOIN products p ON p.id = wo.product_id
+    LEFT JOIN machines m ON m.id = wo.machine_id`;
   if (status) {
     params.push(status);
     sql += ` WHERE wo.status = $1`;
   }
   sql += ` ORDER BY wo.created_at DESC`;
   const { rows } = await query(sql, params);
+  res.json(rows);
+});
+
+// GET /api/work-orders/machines/available — เครื่องที่ "ว่าง" ใช้ตอนสร้าง WO
+// ว่าง = ไม่เสีย/ไม่ซ่อมบำรุงอยู่ และไม่ได้ผูกกับ WO อื่นที่กำลัง IN_PROGRESS
+router.get("/machines/available", async (_req, res) => {
+  const { rows } = await query(
+    `SELECT m.id, m.machine_code, m.name, m.line_name, m.status
+     FROM machines m
+     WHERE m.status NOT IN ('DOWN', 'MAINTENANCE')
+       AND NOT EXISTS (
+         SELECT 1 FROM work_orders wo
+         WHERE wo.machine_id = m.id AND wo.status = 'IN_PROGRESS'
+       )
+     ORDER BY m.machine_code`
+  );
   res.json(rows);
 });
 
@@ -81,7 +99,7 @@ router.get("/:id", async (req, res) => {
 // POST /api/work-orders — สร้างใบสั่งผลิต + ผูกล็อตวัตถุดิบที่จะใช้ (เฉพาะ ENGINEER/ADMIN)
 // body: { woNo, productId, qtyTarget, materials: [{ lotId, qtyReserved }] }
 router.post("/", requireRole("ENGINEER", "ADMIN"), async (req, res) => {
-  const { woNo, productId, qtyTarget, materials = [] } = req.body;
+  const { woNo, productId, qtyTarget, machineId, materials = [] } = req.body;
   if (!woNo || !productId || !qtyTarget) {
     return res.status(400).json({ error: "กรุณากรอก woNo, productId, qtyTarget" });
   }
@@ -89,9 +107,9 @@ router.post("/", requireRole("ENGINEER", "ADMIN"), async (req, res) => {
   try {
     const created = await withTransaction(async (client) => {
       const { rows } = await client.query(
-        `INSERT INTO work_orders (wo_no, product_id, qty_target, status, created_by)
-         VALUES ($1, $2, $3, 'PLANNED', $4) RETURNING *`,
-        [woNo, productId, qtyTarget, req.user.id]
+        `INSERT INTO work_orders (wo_no, product_id, qty_target, status, machine_id, created_by)
+         VALUES ($1, $2, $3, 'PLANNED', $4, $5) RETURNING *`,
+        [woNo, productId, qtyTarget, machineId || null, req.user.id]
       );
       const wo = rows[0];
 
@@ -165,6 +183,35 @@ router.delete("/:id/materials/:lotId", requireRole("ENGINEER", "ADMIN"), async (
   res.json({ removed: true });
 });
 
+// DELETE /api/work-orders/:id — ลบใบสั่งผลิต (เฉพาะที่ยังไม่มีการผลิตจริงเลย ป้องกันทำลาย traceability)
+// เฉพาะ ENGINEER/ADMIN
+router.delete("/:id", requireRole("ENGINEER", "ADMIN"), async (req, res) => {
+  const woId = req.params.id;
+
+  const { rows: unitCheck } = await query(
+    `SELECT COUNT(*)::int AS count FROM production_units WHERE work_order_id = $1`,
+    [woId]
+  );
+  if (unitCheck[0].count > 0) {
+    return res.status(409).json({
+      error: "ใบสั่งผลิตนี้มีชิ้นงานที่ผลิตแล้วผูกอยู่ ลบไม่ได้เพื่อรักษาความสามารถตรวจสอบย้อนกลับ",
+    });
+  }
+
+  try {
+    await withTransaction(async (client) => {
+      await client.query(`DELETE FROM work_order_materials WHERE work_order_id = $1`, [woId]);
+      const { rowCount } = await client.query(`DELETE FROM work_orders WHERE id = $1`, [woId]);
+      if (rowCount === 0) throw { status: 404, message: "ไม่พบใบสั่งผลิต" };
+    });
+    res.json({ deleted: true });
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: "ลบใบสั่งผลิตไม่สำเร็จ" });
+  }
+});
+
 // PATCH /api/work-orders/:id/status — เปลี่ยนสถานะ (เริ่มผลิต / หยุดผลิต)
 router.patch("/:id/status", async (req, res) => {
   const { status } = req.body;
@@ -186,17 +233,18 @@ router.patch("/:id/status", async (req, res) => {
 
 // POST /api/work-orders/:id/units — บันทึกผลิต 1 ชิ้น
 // ตัดสต็อกวัตถุดิบอัตโนมัติตามสูตร BOM จากล็อตที่ผูกไว้กับ WO นี้ (FIFO)
-// body: { serialNo, machineId, result }
+// เครื่องจักรใช้ตัวที่ผูกไว้กับ WO ตอนสร้าง (ไม่ต้องส่งมาจาก client)
+// body: { serialNo, result }
 router.post("/:id/units", async (req, res) => {
   const woId = req.params.id;
-  const { serialNo, machineId, result = "PASS" } = req.body;
+  const { serialNo, result = "PASS" } = req.body;
   if (!serialNo) return res.status(400).json({ error: "ต้องระบุ serialNo" });
 
   try {
     const created = await withTransaction(async (client) => {
       // เช็คว่า WO ยังผลิตได้อยู่ (ไม่ใช่ COMPLETED/CANCELLED)
       const { rows: woRows } = await client.query(
-        `SELECT id, product_id, status FROM work_orders WHERE id = $1 FOR UPDATE`,
+        `SELECT id, product_id, status, machine_id FROM work_orders WHERE id = $1 FOR UPDATE`,
         [woId]
       );
       const wo = woRows[0];
@@ -205,11 +253,11 @@ router.post("/:id/units", async (req, res) => {
         throw { status: 409, message: "ใบสั่งผลิตนี้ปิดงานแล้ว ไม่สามารถบันทึกเพิ่มได้" };
       }
 
-      // 1) สร้างชิ้นงาน
+      // 1) สร้างชิ้นงาน — ใช้เครื่องจักรที่ผูกไว้กับ WO นี้ตั้งแต่ตอนสร้าง
       const { rows: unitRows } = await client.query(
         `INSERT INTO production_units (serial_no, work_order_id, machine_id, operator_id, result)
          VALUES ($1, $2, $3, $4, $5) RETURNING id, serial_no, result, produced_at`,
-        [serialNo, woId, machineId || null, req.user.id, result]
+        [serialNo, woId, wo.machine_id || null, req.user.id, result]
       );
       const unit = unitRows[0];
 

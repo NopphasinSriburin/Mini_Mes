@@ -51,7 +51,19 @@ export default function BomSettings() {
   };
 
   const save = async () => {
-    if (!selectedProduct) return;
+    if (!selectedProduct || !materials) return;
+
+    const suspicious = rows.filter((r) => Number(r.qtyPerUnit) > 100);
+    if (suspicious.length > 0) {
+      const names = suspicious
+        .map((r) => materials.find((m) => m.id === r.materialId)?.name || "")
+        .join(", ");
+      const ok = window.confirm(
+        `ตัวเลขของ "${names}" มากกว่า 100 ต่อชิ้น ซึ่งผิดปกติมากสำหรับวัตถุดิบส่วนใหญ่ (มักเป็นการพิมพ์ผิดหน่วย เช่น ใส่ 5000 แทนที่จะเป็น 0.05)\n\nยืนยันว่าตัวเลขนี้ถูกต้องจริง?`
+      );
+      if (!ok) return;
+    }
+
     setSaving(true);
     setError("");
     setStatus("");
@@ -60,7 +72,10 @@ export default function BomSettings() {
         .filter((r) => r.materialId && Number(r.qtyPerUnit) > 0)
         .map((r) => ({ materialId: r.materialId, qtyPerUnit: Number(r.qtyPerUnit) }));
       await api.setBom(selectedProduct.id, items);
-      setStatus("บันทึกสูตรเรียบร้อย");
+      // โหลดค่ากลับมาจาก endpoint ดึงข้อมูล (GET) แยกต่างหาก แทนที่จะเชื่อ response ของ PUT ตรงๆ
+      const refreshed = await api.getBom(selectedProduct.id);
+      setRows(refreshed.map((b) => ({ materialId: b.material_id, qtyPerUnit: b.qty_per_unit })));
+      setStatus("บันทึกสูตรเรียบร้อย — ตัวเลขด้านบนคือค่าที่บันทึกจริงในระบบ");
     } catch (e) {
       setError(e instanceof Error ? e.message : "บันทึกไม่สำเร็จ — อาจไม่มีสิทธิ์แก้สูตร (ต้องเป็น Engineer/Admin)");
     } finally {
@@ -99,24 +114,34 @@ export default function BomSettings() {
             </div>
             {rows.map((row, i) => {
               const unit = materials.find((m) => m.id === row.materialId)?.unit || "";
+              const isSuspicious = Number(row.qtyPerUnit) > 100;
               return (
-                <div key={i} className="flex gap-2 items-center">
-                  <select value={row.materialId} onChange={(e) => updateRow(i, { materialId: e.target.value })}
-                    className="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 outline-none focus:border-sky-500">
-                    {materials.map((m) => (
-                      <option key={m.id} value={m.id}>{m.material_code} · {m.name}</option>
-                    ))}
-                  </select>
-                  <div className="relative w-32">
-                    <input value={row.qtyPerUnit} onChange={(e) => updateRow(i, { qtyPerUnit: e.target.value })}
-                      type="number" step="0.001" placeholder="เช่น 0.05"
-                      className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-3 pr-10 py-2 text-sm text-slate-100 font-mono outline-none focus:border-sky-500" />
-                    {unit && (
-                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-slate-500 pointer-events-none">{unit}</span>
-                    )}
+                <div key={i}>
+                  <div className="flex gap-2 items-center">
+                    <select value={row.materialId} onChange={(e) => updateRow(i, { materialId: e.target.value })}
+                      className="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 outline-none focus:border-sky-500">
+                      {materials.map((m) => (
+                        <option key={m.id} value={m.id}>{m.material_code} · {m.name}</option>
+                      ))}
+                    </select>
+                    <div className="relative w-32">
+                      <input value={row.qtyPerUnit} onChange={(e) => updateRow(i, { qtyPerUnit: e.target.value })}
+                        type="number" step="0.001" placeholder="เช่น 0.05"
+                        className={`w-full bg-slate-950 border rounded-lg pl-3 pr-10 py-2 text-sm text-slate-100 font-mono outline-none focus:border-sky-500 ${
+                          isSuspicious ? "border-amber-400/60" : "border-slate-700"
+                        }`} />
+                      {unit && (
+                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-slate-500 pointer-events-none">{unit}</span>
+                      )}
+                    </div>
+                    <button onClick={() => removeRow(i)}
+                      className="text-slate-500 hover:text-red-400 px-2 text-sm transition-colors">✕</button>
                   </div>
-                  <button onClick={() => removeRow(i)}
-                    className="text-slate-500 hover:text-red-400 px-2 text-sm transition-colors">✕</button>
+                  {isSuspicious && (
+                    <div className="text-[11px] text-amber-400 mt-1 ml-1">
+                      ⚠ ตัวเลขนี้ดูเยอะผิดปกติ (เกิน 100 ต่อชิ้น) — มักเป็นการพิมพ์ผิดหน่วย เช่น ใส่ 5000 แทนที่จะเป็น 0.05
+                    </div>
+                  )}
                 </div>
               );
             })}
