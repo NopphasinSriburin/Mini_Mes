@@ -53,26 +53,57 @@ export default function App() {
   const [tab, setTab] = useState<TabId>("dashboard");
 
   const [expandedGroups, setExpandedGroups] = useState<string[]>(["production"]);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogin = (u: User) => { setUser(u); setAuthed(true); };
   const handleLogout = () => { clearToken(); setUser(null); setAuthed(false); };
 
   if (!authed) return <Login onLogin={handleLogin} />;
 
-  const selectTab = (id: TabId) => setTab(id);
+  const selectTab = (id: TabId) => { setTab(id); setMobileOpen(false); };
   const toggleGroup = (key: string) =>
     setExpandedGroups((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex">
-      {/* ---------- Sidebar ---------- */}
-      <aside className="w-60 shrink-0 border-r border-slate-800 flex flex-col">
-        <div className="p-4 border-b border-slate-800 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-md bg-sky-500 flex items-center justify-center font-mono font-extrabold text-slate-950 shrink-0">M</div>
-          <div className="min-w-0">
-            <div className="font-bold text-sm leading-tight truncate">Mini MES</div>
-            <div className="text-[11px] text-slate-500 truncate">Smart Factory · MES</div>
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col md:flex-row">
+      {/* ---------- Mobile top bar (เห็นเฉพาะจอเล็ก) ---------- */}
+      <div className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-3 border-b border-slate-800 bg-slate-950">
+        <button onClick={() => setMobileOpen(true)} aria-label="เปิดเมนู"
+          className="text-slate-300 hover:text-white p-1.5 -ml-1.5 rounded-lg hover:bg-slate-800/60 transition-colors">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-md bg-sky-500 flex items-center justify-center font-mono font-extrabold text-slate-950 text-xs">M</div>
+          <span className="font-bold text-sm">Mini MES</span>
+        </div>
+        <div className="w-9" /> {/* spacer เพื่อจัดกึ่งกลางโลโก้ */}
+      </div>
+
+      {/* ---------- Backdrop เมื่อเปิด drawer บนมือถือ ---------- */}
+      {mobileOpen && (
+        <div className="md:hidden fixed inset-0 z-40 bg-black/60" onClick={() => setMobileOpen(false)} />
+      )}
+
+      {/* ---------- Sidebar — drawer บนมือถือ, คงที่บนจอใหญ่ ---------- */}
+      <aside className={`fixed md:static inset-y-0 left-0 z-50 w-64 md:w-60 shrink-0 border-r border-slate-800 flex flex-col bg-slate-950 transform transition-transform duration-200 ease-in-out ${
+        mobileOpen ? "translate-x-0" : "-translate-x-full"
+      } md:translate-x-0`}>
+        <div className="p-4 border-b border-slate-800 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-8 h-8 rounded-md bg-sky-500 flex items-center justify-center font-mono font-extrabold text-slate-950 shrink-0">M</div>
+            <div className="min-w-0">
+              <div className="font-bold text-sm leading-tight truncate">Mini MES</div>
+              <div className="text-[11px] text-slate-500 truncate">Smart Factory · MES</div>
+            </div>
           </div>
+          <button onClick={() => setMobileOpen(false)} aria-label="ปิดเมนู"
+            className="md:hidden text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800/60 transition-colors shrink-0">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
         <nav className="flex-1 overflow-y-auto py-2 px-2">
@@ -136,7 +167,7 @@ export default function App() {
       </aside>
 
       {/* ---------- Main content ---------- */}
-      <main className="flex-1 overflow-y-auto p-6">
+      <main className="flex-1 overflow-y-auto p-4 md:p-6 min-w-0">
         <div className="max-w-5xl mx-auto">
           {tab === "dashboard" && <Dashboard />}
           {tab === "production" && <Production />}
