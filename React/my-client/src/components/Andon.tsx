@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api";
 import type { WorkOrder, QualityResult } from "../types";
 import Badge from "./Badge";
-import MaterialPanel from "./materialpanel";
+import MaterialPanel from "./MaterialPanel";
 
 interface RecentRecord {
   serial: string;
