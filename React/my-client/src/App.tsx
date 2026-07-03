@@ -7,10 +7,10 @@ import Production from "./components/Production";
 import Andon from "./components/Andon";
 import CreateWorkOrder from "./components/CreateWorkOrder";
 import ProductionHistory from "./components/ProductionHistory";
-import BomSettings from "./components/Bomsettings";
+import BomSettings from "./components/BomSettings";
 import QcRecheck from "./components/QcRecheck";
-import ReceiveMaterial from "./components/Receivematerial";
-import MaterialLedgerPage from "./components/Materialledgerpage";
+import ReceiveMaterial from "./components/ReceiveMaterial";
+import MaterialLedgerPage from "./components/MaterialLedgerPage";
 import Traceability from "./components/Traceability";
 import Maintenance from "./components/Maintenance";
 
