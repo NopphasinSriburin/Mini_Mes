@@ -6,10 +6,24 @@ import Badge from "./Badge";
 export default function Production() {
   const [orders, setOrders] = useState<WorkOrder[] | null>(null);
   const [error, setError] = useState("");
+  const [busyId, setBusyId] = useState<string | null>(null);
 
-  useEffect(() => {
-    api.getWorkOrders().then(setOrders).catch((e) => setError(e.message));
-  }, []);
+  const load = () => api.getWorkOrders().then(setOrders).catch((e) => setError(e.message));
+
+  useEffect(() => { load(); }, []);
+
+  const startProduction = async (id: string) => {
+    setBusyId(id);
+    setError("");
+    try {
+      await api.setWorkOrderStatus(id, "IN_PROGRESS");
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "เริ่มผลิตไม่สำเร็จ");
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   if (error) return <div className="text-red-400 text-sm bg-red-400/10 border border-red-400/30 rounded-lg p-4">{error}</div>;
   if (!orders) return <div className="text-slate-500 text-sm py-12 text-center">กำลังโหลด...</div>;
@@ -21,7 +35,7 @@ export default function Production() {
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-slate-800/50 text-slate-400 text-[11px] uppercase tracking-wide">
-              <Th>WO No.</Th><Th>สินค้า</Th><Th right>เป้า</Th><Th right>ดี</Th><Th right>เสีย</Th><Th>สถานะ</Th>
+              <Th>WO No.</Th><Th>สินค้า</Th><Th right>เป้า</Th><Th right>ดี</Th><Th right>เสีย</Th><Th>สถานะ</Th><Th>การจัดการ</Th>
             </tr>
           </thead>
           <tbody>
@@ -41,6 +55,14 @@ export default function Production() {
                   <Td right mono className="text-emerald-400">{w.qty_good}</Td>
                   <Td right mono className={w.qty_defect ? "text-red-400" : "text-slate-500"}>{w.qty_defect}</Td>
                   <Td><Badge value={w.status} /></Td>
+                  <Td>
+                    {w.status === "PLANNED" && (
+                      <button onClick={() => startProduction(w.id)} disabled={busyId === w.id}
+                        className="text-xs bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-slate-950 font-semibold px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap">
+                        {busyId === w.id ? "..." : "▶ เริ่มผลิต"}
+                      </button>
+                    )}
+                  </Td>
                 </tr>
               );
             })}

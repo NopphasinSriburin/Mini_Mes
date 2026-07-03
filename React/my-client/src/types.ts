@@ -39,7 +39,121 @@ export interface WorkOrder {
   status: WorkOrderStatus;
   actual_start: string | null;
   actual_end: string | null;
+  product_id: string;
   product_code: string;
+  product_name: string;
+}
+
+// ---------- products & materials (BOM) ----------
+export interface Product {
+  id: string;
+  product_code: string;
+  name: string;
+  unit: string;
+}
+
+export interface Material {
+  id: string;
+  material_code: string;
+  name: string;
+  unit: string;
+}
+
+export interface LedgerEntry {
+  type: "IN" | "OUT";
+  ts: string;
+  lot_no: string;
+  serial_no: string | null;
+  wo_no: string | null;
+  qty: string;
+  ref: string | null; // supplier (IN) หรือ null (OUT)
+}
+
+export interface MaterialLedger {
+  material: Material;
+  totalRemaining: string;
+  entries: LedgerEntry[];
+}
+
+export interface CreateLotRequest {
+  materialId: string;
+  lotNo: string;
+  supplier?: string;
+  qtyReceived: number;
+}
+
+export interface MaterialLot {
+  id: string;
+  lot_no: string;
+  supplier: string;
+  qty_received: string;
+  qty_remaining: string;
+  received_at: string;
+  material_id: string;
+  material_code: string;
+  material_name: string;
+  unit: string;
+}
+
+export interface BomItem {
+  id: string;
+  material_id: string;
+  qty_per_unit: string;
+  material_code: string;
+  material_name: string;
+  unit: string;
+}
+
+export interface BomItemInput {
+  materialId: string;
+  qtyPerUnit: number;
+}
+
+// ---------- work order creation ----------
+export interface CreateWorkOrderRequest {
+  woNo: string;
+  productId: string;
+  qtyTarget: number;
+  materials: { lotId: string; qtyReserved?: number }[];
+}
+
+export interface ReservedMaterial {
+  material_lot_id: string;
+  qty_reserved: string | null;
+  lot_no: string;
+  supplier: string;
+  qty_remaining: string;
+  material_code: string;
+  material_name: string;
+}
+
+export interface WorkOrderDetailUnit {
+  id: string;
+  serial_no: string;
+  result: QualityResult;
+  produced_at: string;
+  reject_reason: string | null;
+  rejected_at: string | null;
+  machine_code: string | null;
+  operator: string | null;
+}
+
+export interface WorkOrderDetail extends WorkOrder {
+  units: WorkOrderDetailUnit[];
+  reservedMaterials: ReservedMaterial[];
+}
+
+// ---------- QC recheck ----------
+export interface UnitLookup {
+  id: string;
+  serial_no: string;
+  result: QualityResult;
+  produced_at: string;
+  reject_reason: string | null;
+  rejected_at: string | null;
+  work_order_id: string;
+  wo_no: string;
+  wo_status: WorkOrderStatus;
   product_name: string;
 }
 
@@ -91,6 +205,26 @@ export interface LotTrace {
   units: LotTraceUnit[];
 }
 
+export interface Machine {
+  id: string;
+  machine_code: string;
+  name: string;
+  line_name: string | null;
+  status: MachineStatus;
+}
+
+export interface CreateMaintenanceRequest {
+  moNo: string;
+  machineId: string;
+  type: MaintenanceType;
+  problem?: string;
+}
+
+export interface CloseMaintenanceRequest {
+  actionTaken?: string;
+  downtimeMin?: number;
+}
+
 // ---------- maintenance ----------
 export interface MaintenanceOrder {
   id: string;
@@ -108,6 +242,31 @@ export interface MaintenanceOrder {
 }
 
 // ---------- dashboard ----------
+export interface DashboardWorkOrderBrief {
+  id: string;
+  wo_no: string;
+  qty_target: number;
+  qty_good: number;
+  qty_defect: number;
+  product_name: string;
+}
+
+export interface LowStockLot {
+  id: string;
+  lot_no: string;
+  qty_remaining: string;
+  qty_received: string;
+  material_name: string;
+  wo_no: string;
+}
+
+export interface DownMachine {
+  machine_code: string;
+  machine_name: string;
+  mo_no: string | null;
+  problem: string | null;
+}
+
 export interface DashboardSummary {
   workOrders: {
     in_progress: string;
@@ -118,4 +277,7 @@ export interface DashboardSummary {
   machineStatus: { status: MachineStatus; count: number }[];
   openMaintenance: number;
   qualityYieldPct: number | null;
+  inProgressOrders: DashboardWorkOrderBrief[];
+  lowStockLots: LowStockLot[];
+  downMachines: DownMachine[];
 }

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api";
 import type { WorkOrder, QualityResult } from "../types";
 import Badge from "./Badge";
+import MaterialPanel from "./materialpanel";
 
 interface RecentRecord {
   serial: string;
@@ -15,22 +16,24 @@ export default function Andon() {
   const [recent, setRecent] = useState<RecentRecord[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [stopping, setStopping] = useState(false);
+  const [showMaterials, setShowMaterials] = useState(false);
 
-  // โหลดเฉพาะใบสั่งผลิตที่กำลังผลิตอยู่
   const loadOrders = () =>
     api.getWorkOrders("IN_PROGRESS").then((list) => {
       setOrders(list);
-      // ถ้ามีตัวที่เลือกอยู่ อัปเดตยอดให้ตรง
-      setSelected((cur) => (cur ? list.find((o) => o.id === cur.id) ?? cur : list[0] ?? null));
+      setSelected((cur) => (cur ? list.find((o) => o.id === cur.id) ?? null : list[0] ?? null));
     }).catch((e) => setError(e.message));
 
   useEffect(() => { loadOrders(); }, []);
 
-  // สร้าง serial อัตโนมัติจากเลข WO + เวลา (พนักงานไม่ต้องพิมพ์)
   const nextSerial = (wo: WorkOrder) => {
     const seq = (wo.qty_good + wo.qty_defect + 1).toString().padStart(4, "0");
     return `${wo.wo_no}-${seq}`;
   };
+
+  // เป้าหมายนับเฉพาะของดี — ของเสียไม่นับ ไม่ทำให้หยุด
+  const reachedTarget = (wo: WorkOrder) => wo.qty_good >= wo.qty_target;
 
   const record = async (result: QualityResult) => {
     if (!selected || busy) return;
@@ -40,11 +43,29 @@ export default function Andon() {
     try {
       await api.recordUnit(selected.id, { serialNo: serial, result });
       setRecent((r) => [{ serial, result, time: new Date().toLocaleTimeString("th-TH") }, ...r].slice(0, 8));
-      await loadOrders(); // ดึงยอดใหม่
+      await loadOrders();
     } catch (e) {
       setError(e instanceof Error ? e.message : "บันทึกไม่สำเร็จ");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const stopProduction = async () => {
+    if (!selected) return;
+    const ok = window.confirm(
+      `ยืนยันหยุดการผลิต ${selected.wo_no}?\n\nของดี ${selected.qty_good}/${selected.qty_target} — หลังหยุดแล้วจะย้ายไปหน้าประวัติการผลิต และบันทึกเพิ่มไม่ได้จนกว่าจะเปิดใหม่ผ่านหน้า QC`
+    );
+    if (!ok) return;
+    setStopping(true);
+    setError("");
+    try {
+      await api.setWorkOrderStatus(selected.id, "COMPLETED");
+      await loadOrders();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "หยุดการผลิตไม่สำเร็จ");
+    } finally {
+      setStopping(false);
     }
   };
 
@@ -54,23 +75,22 @@ export default function Andon() {
   if (orders.length === 0) {
     return (
       <div className="text-slate-500 text-sm bg-slate-900 border border-slate-800 rounded-lg p-6 text-center">
-        ไม่มีใบสั่งผลิตที่กำลังดำเนินการ — เปลี่ยนสถานะ WO เป็น IN_PROGRESS ก่อนจึงจะบันทึกได้
+        ไม่มีใบสั่งผลิตที่กำลังดำเนินการ — ไปที่แท็บ "สร้าง WO" แล้วกด "เริ่มผลิต" ที่หน้าการผลิตก่อน
       </div>
     );
   }
+
+  const done = selected ? reachedTarget(selected) : false;
 
   return (
     <div>
       <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">บันทึกการผลิต (Andon)</h2>
 
-      {/* เลือกใบสั่งผลิต */}
       <div className="flex gap-2 mb-5 overflow-x-auto pb-1">
         {orders.map((o) => (
-          <button key={o.id} onClick={() => setSelected(o)}
+          <button key={o.id} onClick={() => { setSelected(o); setShowMaterials(false); }}
             className={`px-4 py-2.5 rounded-lg text-sm font-mono whitespace-nowrap border transition-colors ${
-              selected?.id === o.id
-                ? "text-sky-400 bg-sky-400/10 border-sky-400/40"
-                : "text-slate-400 border-slate-700 hover:border-slate-600"
+              selected?.id === o.id ? "text-sky-400 bg-sky-400/10 border-sky-400/40" : "text-slate-400 border-slate-700 hover:border-slate-600"
             }`}>
             {o.wo_no}
           </button>
@@ -79,7 +99,6 @@ export default function Andon() {
 
       {selected && (
         <>
-          {/* สรุปยอดของใบที่เลือก */}
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-4">
             <div className="flex items-center justify-between mb-1">
               <span className="font-mono text-lg font-bold text-slate-100">{selected.wo_no}</span>
@@ -94,17 +113,32 @@ export default function Andon() {
             </div>
 
             <div className="h-2 bg-slate-800 rounded-full overflow-hidden mt-3">
-              <div className="h-full bg-sky-500 transition-all"
-                style={{ width: `${Math.min(100, Math.round(((selected.qty_good + selected.qty_defect) / selected.qty_target) * 100))}%` }} />
+              <div className={`h-full transition-all ${done ? "bg-emerald-500" : "bg-sky-500"}`}
+                style={{ width: `${Math.min(100, Math.round((selected.qty_good / selected.qty_target) * 100))}%` }} />
             </div>
             <div className="text-xs text-slate-500 mt-1.5 font-mono">
               ชิ้นถัดไป: {nextSerial(selected)}
             </div>
+
+            <button onClick={() => setShowMaterials((s) => !s)}
+              className="mt-3 text-xs text-sky-400 hover:text-sky-300 transition-colors">
+              {showMaterials ? "▲ ซ่อนวัตถุดิบ" : "▼ จัดการวัตถุดิบ"}
+            </button>
+            {showMaterials && <MaterialPanel workOrderId={selected.id} productId={selected.product_id} />}
+
+            {done && (
+              <div className="mt-4 flex items-center justify-between bg-emerald-400/10 border border-emerald-400/30 rounded-lg px-3.5 py-2.5">
+                <span className="text-sm text-emerald-400 font-semibold">✓ ครบเป้าหมายแล้ว</span>
+                <button onClick={stopProduction} disabled={stopping}
+                  className="bg-red-500 hover:bg-red-400 disabled:opacity-50 text-slate-950 font-semibold text-xs px-4 py-2 rounded-lg transition-colors">
+                  {stopping ? "กำลังหยุด..." : "🛑 หยุดการผลิต"}
+                </button>
+              </div>
+            )}
           </div>
 
           {error && <div className="text-red-400 text-sm bg-red-400/10 border border-red-400/30 rounded-lg p-3 mb-4">{error}</div>}
 
-          {/* ปุ่มใหญ่ — กดง่ายบน tablet หน้างาน */}
           <div className="grid grid-cols-2 gap-3 mb-6">
             <button onClick={() => record("PASS")} disabled={busy}
               className="bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-50 text-slate-950 font-bold text-lg rounded-xl py-8 transition-all">
@@ -117,8 +151,10 @@ export default function Andon() {
               <div className="text-xs font-normal opacity-80 mt-1">FAIL</div>
             </button>
           </div>
+          <p className="text-xs text-slate-500 text-center -mt-4 mb-6">
+            ปุ่มของเสียกดได้เสมอ ไม่นับเข้าเป้าหมาย — เป้าหมายนับเฉพาะของดี
+          </p>
 
-          {/* รายการที่เพิ่งบันทึก */}
           {recent.length > 0 && (
             <>
               <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2">บันทึกล่าสุด</h3>
