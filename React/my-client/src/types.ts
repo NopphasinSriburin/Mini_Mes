@@ -192,6 +192,28 @@ export interface TraceMaterial {
   qtyUsed: string;
 }
 
+// ---------- unified trace search ----------
+export interface TraceSearchUnit {
+  serial_no: string;
+  result: QualityResult;
+  produced_at: string;
+  product_name: string;
+  wo_no: string;
+}
+
+export interface TraceSearchLot {
+  lot_no: string;
+  supplier: string | null;
+  qty_remaining: string;
+  material_name: string;
+  usage_count: number;
+}
+
+export interface TraceSearchResult {
+  units: TraceSearchUnit[];
+  lots: TraceSearchLot[];
+}
+
 export interface UnitTrace {
   serialNo: string;
   product: { code: string; name: string };

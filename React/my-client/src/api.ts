@@ -9,6 +9,7 @@ import type {
   Product, Material, MaterialLot, BomItem, BomItemInput,
   CreateWorkOrderRequest, WorkOrderDetail, UnitLookup, ReservedMaterial, CreateLotRequest,
   MaterialLedger, Machine, CreateMaintenanceRequest, CloseMaintenanceRequest, AvailableMachine,
+  TraceSearchResult,
 } from "./types";
 
 // ตอน dev ใช้ localhost, ตอน deploy ใช้ VITE_API_URL ที่ตั้งค่าไว้บน Vercel
@@ -69,6 +70,13 @@ export const api = {
 
   traceLot: (lotNo: string) =>
     request<LotTrace>(`/trace/lot/${encodeURIComponent(lotNo)}`),
+
+  // ค้นหารวม serial + lot พร้อมกัน (พิมพ์บางส่วนได้)
+  traceSearch: (q: string) =>
+    request<TraceSearchResult>(`/trace/search?q=${encodeURIComponent(q)}`),
+
+  // รายการล่าสุด (ชิ้นงาน + ล็อต) สำหรับกดเลือกโดยไม่ต้องพิมพ์
+  traceRecent: () => request<TraceSearchResult>("/trace/recent"),
 
   getMaintenance: (status?: string) =>
     request<MaintenanceOrder[]>(`/maintenance${status ? `?status=${status}` : ""}`),
